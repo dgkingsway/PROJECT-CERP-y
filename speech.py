@@ -1,6 +1,20 @@
 import speech_recognition as sr
 import automation
 
+# Mapping speech commands to actions
+command_map = {
+    "open": lambda cmd: automation.execute_task("open", cmd.replace("open ", "")),
+    "volume up": lambda _: automation.execute_task("volume", 80),
+    "increase volume": lambda _: automation.execute_task("volume", 80),
+    "volume down": lambda _: automation.execute_task("volume", 30),
+    "decrease volume": lambda _: automation.execute_task("volume", 30),
+    "copy": lambda _: automation.execute_task("shortcut", "copy"),
+    "paste": lambda _: automation.execute_task("shortcut", "paste"),
+    "search": lambda cmd: automation.execute_task("search", cmd.replace("search ", "")),
+    "move mouse": lambda _: automation.execute_task("mouse", "move", 500, 500),
+    "click": lambda _: automation.execute_task("mouse", "click"),
+}
+
 def recognize_speech():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
@@ -12,38 +26,14 @@ def recognize_speech():
         command = recognizer.recognize_google(audio).lower()
         print(f"Recognized: {command}")
 
-        # Process speech commands
-        if "open" in command:
-            app_name = command.replace("open ", "")
-            return automation.execute_task("open", app_name)
-
-        elif "volume up" in command or "increase volume" in command:
-            return automation.execute_task("volume", 80)
-
-        elif "volume down" in command or "decrease volume" in command:
-            return automation.execute_task("volume", 30)
-
-        elif "copy" in command:
-            return automation.execute_task("shortcut", "copy")
-
-        elif "paste" in command:
-            return automation.execute_task("shortcut", "paste")
-
-        elif "search" in command:
-            query = command.replace("search ", "")
-            return automation.execute_task("search", query)
-
-        elif "move mouse" in command:
-            return automation.execute_task("mouse", "move", 500, 500)
-
-        elif "click" in command:
-            return automation.execute_task("mouse", "click")
-
-        else:
-            return "Command not recognized."
+        # Find matching command
+        for key in command_map:
+            if key in command:
+                return command_map[key](command)
+        
+        return "Command not recognized."
 
     except sr.UnknownValueError:
         return "Sorry, I couldn't understand."
     except sr.RequestError:
         return "Could not request results, check internet."
-
