@@ -41,11 +41,11 @@ CERP (Computer Automation for Disabled People) is a voice-activated automation t
 ### **Setup**
 1. Clone the repository:
    ```sh
-git clone https://github.com/dgkingsway/PROJECT-CERP.git
+git clone https://github.com/dgkingsway/PROJECT-CERP-y.git
    ```
 2. Navigate to the project folder:
    ```sh
-   cd PROJECT-CERP
+   cd PROJECT-CERP-y
    ```
 3. Run the application:
    ```sh
@@ -82,3 +82,4 @@ Feel free to contribute by submitting pull requests or raising issues.
 ## Contact
 For questions or suggestions, reach out via GitHub Issues or email [dgkingsway@gmail.com](mailto:dgkingsway@gmail.com).
 
+> ⚠️ **Disclaimer:** This project is not affiliated with any other "CERP" projects. See the full disclaimer below.
