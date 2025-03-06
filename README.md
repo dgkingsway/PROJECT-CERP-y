@@ -1,4 +1,4 @@
-# CERP - Computer Automation for Disabled People Using Python
+# CERP-y - Computer Automation for Disabled People Using Python
 
 ## Overview
 CERP (Computer Automation for Disabled People) is a voice-activated automation tool designed to assist individuals with motor disabilities in operating a computer more efficiently. By integrating voice commands, automation, and accessibility features, CERP enhances usability for those with limited mobility.
