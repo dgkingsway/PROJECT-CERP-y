@@ -3,14 +3,14 @@ import automation
 
 # Mapping speech commands to actions
 command_map = {
-    "open": lambda cmd: automation.execute_task("open", cmd.replace("open ", "")),
+    "open": lambda cmd: automation.execute_task("open", cmd.split(" ", 1)[1]) if len(cmd.split()) > 1 else "Specify an application to open.",
     "volume up": lambda _: automation.execute_task("volume", 80),
     "increase volume": lambda _: automation.execute_task("volume", 80),
     "volume down": lambda _: automation.execute_task("volume", 30),
     "decrease volume": lambda _: automation.execute_task("volume", 30),
     "copy": lambda _: automation.execute_task("shortcut", "copy"),
     "paste": lambda _: automation.execute_task("shortcut", "paste"),
-    "search": lambda cmd: automation.execute_task("search", cmd.replace("search ", "")),
+    "search": lambda cmd: automation.execute_task("search", cmd.split(" ", 1)[1]) if len(cmd.split()) > 1 else "Specify a search query.",
     "move mouse": lambda _: automation.execute_task("mouse", "move", 500, 500),
     "click": lambda _: automation.execute_task("mouse", "click"),
 }
@@ -28,7 +28,7 @@ def recognize_speech():
 
         # Find matching command
         for key in command_map:
-            if key in command:
+            if command.startswith(key):
                 return command_map[key](command)
         
         return "Command not recognized."
@@ -37,3 +37,5 @@ def recognize_speech():
         return "Sorry, I couldn't understand."
     except sr.RequestError:
         return "Could not request results, check internet."
+    except Exception as e:
+        return f"Error: {str(e)}"
