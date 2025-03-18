@@ -23,7 +23,7 @@ class SpeechProcessor:
         OSError: lambda: (logging.error("Microphone not found"), "Error: Microphone not found, please check your audio settings."),
         Exception: lambda e: (logging.error(f"Speech recognition failed: {e}"), f"Error: {str(e)}")
     }
-
+ 
     def __init__(self):
         self.recognizer = sr.Recognizer()
         self.auto = Automation()
