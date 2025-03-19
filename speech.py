@@ -3,9 +3,15 @@ import logging
 from typing import Optional
 from automation import Automation
 from logging.handlers import RotatingFileHandler
+import os
+
+# Ensure the logs directory exists
+log_dir = "logs"
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
 
 # Configure logging with rotation
-handler = RotatingFileHandler('logs/cerp.log', maxBytes=5*1024*1024, backupCount=2)
+handler = RotatingFileHandler('logs/cerp.log', maxBytes=5 * 1024 * 1024, backupCount=2)
 logging.basicConfig(
     handlers=[handler],
     level=logging.INFO,
@@ -13,14 +19,13 @@ logging.basicConfig(
 )
 
 class SpeechProcessor:
-    """Simplified class to handle speech recognition for CERP."""
-    
-    # Minimal error handling mapping
+    """Handles speech recognition and command processing with improved delegation."""
+
     ERROR_HANDLERS = {
         sr.WaitTimeoutError: lambda: (logging.warning("Listening timed out"), "Sorry, timed out waiting for command."),
         sr.UnknownValueError: lambda: (logging.warning("Could not understand audio"), "Sorry, I couldn't understand."),
-        sr.RequestError: lambda: (logging.error("Speech recognition request failed"), "Could not request results, check internet connection."),
-        OSError: lambda: (logging.error("Microphone not found"), "Error: Microphone not found, please check your audio settings."),
+        sr.RequestError: lambda: (logging.error("Speech recognition request failed"), "Could not request results, check internet."),
+        OSError: lambda: (logging.error("Microphone not found"), "Error: Microphone not found, check audio settings."),
         Exception: lambda e: (logging.error(f"Speech recognition failed: {e}"), f"Error: {str(e)}")
     }
 
@@ -28,9 +33,23 @@ class SpeechProcessor:
         self.recognizer = sr.Recognizer()
         self.auto = Automation()
         logging.info("Speech processor initialized")
+        self.COMMAND_DISPATCHER = {
+            "error": lambda cmd: cmd,
+            "sorry": lambda cmd: cmd,
+            "open": lambda cmd: self.auto.execute_task(cmd),
+            "close": lambda cmd: self.auto.execute_task(cmd),
+            "increase volume": lambda cmd: self.auto.execute_task(cmd),
+            "decrease volume": lambda cmd: self.auto.execute_task(cmd),
+            "system status": lambda cmd: self.auto.execute_task(cmd),
+            "start voice typing": lambda cmd: self.auto.execute_task(cmd),
+            "stop voice typing": lambda cmd: self.auto.execute_task(cmd),
+            "skip shorts": lambda cmd: self.auto.execute_task(cmd),
+            "skip next": lambda cmd: self.auto.execute_task(cmd),
+            "exit": lambda cmd: self.auto.execute_task(cmd),
+        }
 
     def listen(self) -> Optional[str]:
-        """Listen for a voice command and return the recognized text."""
+        """Capture voice command with robust error handling."""
         with sr.Microphone() as source:
             logging.info("Listening for command...")
             try:
@@ -43,14 +62,8 @@ class SpeechProcessor:
                 log_action, result = handler()
                 return result
 
-    # Command dispatcher (not used by GUI, kept for completeness)
-    COMMAND_DISPATCHER = {
-        "error": lambda cmd: cmd,
-        "sorry": lambda cmd: cmd
-    }
-
     def process_command(self, command: str) -> str:
-        """Process the recognized command and return feedback using a dispatcher."""
+        """Process commands, delegating to Automation where applicable."""
         logging.info(f"Processing command: {command}")
         try:
             state_key = next((key for key in self.COMMAND_DISPATCHER if key in command.lower()), "default")
@@ -60,15 +73,14 @@ class SpeechProcessor:
             return f"Error processing command: {str(e)}"
 
     def _execute_command(self, command: str) -> str:
-        """Execute a valid command."""
+        """Execute non-specific commands via Automation."""
         try:
-            words = command.split(maxsplit=1)
-            task = words[0].lower() if words else ""
-            args = words[1].split() if len(words) > 1 else []
-            logging.info(f"Task: {task}, Args: {args}")
-            result = self.auto.execute_task(task, *args)
-            logging.info(f"Processed command: {command}, Result: {result}")
-            return result
+            return self.auto.execute_task(command)
         except Exception as e:
             logging.error(f"Command execution failed: {command}, Error: {e}")
             return f"Error executing command: {str(e)}"
+
+if __name__ == "__main__":
+    processor = SpeechProcessor()
+    command = processor.listen()
+    print(processor.process_command(command))
