@@ -9,14 +9,6 @@ from typing import Dict, List
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 from comtypes import CLSCTX_ALL
 from logging.handlers import RotatingFileHandler
-import speech_recognition as sr
-import threading
-import time
-
-# Ensure the logs directory exists
-log_dir = "logs"
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir)
 
 # Configure logging with rotation
 handler = RotatingFileHandler('logs/cerp.log', maxBytes=5 * 1024 * 1024, backupCount=2)
@@ -26,9 +18,10 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-class Automation:
-    """Class to handle computer automation tasks with history and feedback."""
 
+class Automation:
+    """Class to handle computer automation tasks for CERP with history and feedback."""
+    
     def __init__(self):
         pyautogui.FAILSAFE = True
         self.app_paths = {
@@ -39,22 +32,15 @@ class Automation:
             "excel": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE",
             "powerpoint": "C:\\Program Files\\Microsoft Office\\root\\Office16\\POWERPNT.EXE"
         }
-        self.web_apps = {
-            "gmail": "https://mail.google.com",
-            "youtube": "https://www.youtube.com",
-            "instagram": "https://www.instagram.com",
-            "google": "https://www.google.com"
-        }
-        self.processes = {}  # Track opened processes for closing
-        self.history = []
+        self.history: List[str] = []
         self.max_history = 10
         self.voice_typing_active = False
         self.recognizer = sr.Recognizer()
         logging.info("Automation module initialized.")
 
     def open_application(self, app_name: str) -> str:
-        """Open an application or web app by name and track the process."""
-        logging.info(f"Attempting to open: {app_name}")
+        """Open an application by name (supports multi-word names joined with spaces)."""
+        logging.info(f"Attempting to open application: {app_name}")
         try:
             normalized_app_name = app_name.lower().replace(" ", "")
             if normalized_app_name in self.web_apps:
@@ -142,121 +128,6 @@ class Automation:
         except Exception as e:
             logging.error(f"System status failed: {e}")
             return f"Error retrieving status: {str(e)}"
-
-    def start_voice_typing(self) -> str:
-        """Start voice typing in a separate thread."""
-        if self.voice_typing_active:
-            return "Voice typing is already active."
-        self.voice_typing_active = True
-        thread = threading.Thread(target=self._voice_typing_loop)
-        thread.start()
-        message = "Voice typing started. Say 'stop voice typing' to stop."
-        logging.info(message)
-        self._add_to_history(message)
-        return message
-
-    def _voice_typing_loop(self):
-        """Voice typing loop running in a separate thread."""
-        try:
-            self.open_application("notepad")
-            pyautogui.sleep(1)  # Wait for Notepad to open
-            pyautogui.hotkey('win', 'up')  # Maximize Notepad window
-            with sr.Microphone() as source:
-                self.recognizer.adjust_for_ambient_noise(source)
-                while self.voice_typing_active:
-                    logging.info("Listening for voice typing...")
-                    audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=5)
-                    try:
-                        text = self.recognizer.recognize_google(audio, language="en-US")
-                        if "stop voice typing" in text.lower():
-                            self.stop_voice_typing()
-                            break
-                        pyautogui.write(text + " ")  # Type the recognized text
-                        logging.info(f"Typed: {text}")
-                    except sr.UnknownValueError:
-                        logging.warning("Could not understand audio.")
-                    except sr.RequestError:
-                        logging.error("Speech recognition request failed.")
-        except Exception as e:
-            logging.error(f"Voice typing thread failed: {e}")
-            self.voice_typing_active = False
-
-    def stop_voice_typing(self) -> str:
-        """Stop voice typing."""
-        self.voice_typing_active = False
-        message = "Voice typing stopped."
-        logging.info(message)
-        self._add_to_history(message)
-        return message
-
-    def skip_shorts(self) -> str:
-        """Skip a YouTube Short by simulating a down arrow key press."""
-        try:
-            pyautogui.press("down")  # Simulates pressing the down arrow to skip a Short
-            message = "Skipped a Short."
-            logging.info(message)
-            self._add_to_history(message)
-            return message
-        except Exception as e:
-            logging.error(f"Failed to skip Short: {e}")
-            return f"Error skipping Short: {str(e)}"
-
-    def skip_next(self) -> str:
-        """Skip to the next video or content (e.g., on YouTube or Instagram)."""
-        try:
-            # Ensure the browser window is in focus
-            browser_names = ["chrome", "msedge", "firefox"]
-            for proc in psutil.process_iter(['name']):
-                if any(browser in proc.info['name'].lower() for browser in browser_names):
-                    pyautogui.hotkey("alt", "tab")  # Switch to the browser
-                    time.sleep(0.5)  # Wait for focus
-                    break
-            pyautogui.press("right")  # Simulates pressing the right arrow to skip to the next video
-            time.sleep(0.5)  # Add a small delay to ensure the key press registers
-            message = "Skipped to the next content."
-            logging.info(message)
-            self._add_to_history(message)
-            return message
-        except Exception as e:
-            logging.error(f"Failed to skip to next content: {e}")
-            return f"Error skipping to next content: {str(e)}"
-
-    def exit_application(self) -> str:
-        """Signal to exit the application."""
-        message = "Exiting application..."
-        logging.info(message)
-        self._add_to_history(message)
-        return message
-
-    def execute_task(self, command: str) -> str:
-        """Execute a task based on the command."""
-        logging.info(f"Executing command: {command}")
-        try:
-            parts = command.split(maxsplit=2)
-            task = parts[0].lower()
-            args = parts[1] if len(parts) > 1 else ""
-
-            task_mapping = {
-                "open": lambda: self.open_application(args),
-                "close": lambda: self.close_application(args),
-                "increase volume": lambda: self.adjust_volume(10.0),
-                "decrease volume": lambda: self.adjust_volume(-10.0),
-                "system status": lambda: self.get_system_status(),
-                "start voice typing": lambda: self.start_voice_typing(),
-                "stop voice typing": lambda: self.stop_voice_typing(),
-                "skip shorts": lambda: self.skip_shorts(),
-                "skip next": lambda: self.skip_next(),
-                "exit": lambda: self.exit_application(),
-            }
-
-            for key, func in task_mapping.items():
-                if command.startswith(key):
-                    return func()
-
-            return "Invalid task."
-        except Exception as e:
-            logging.error(f"Command execution failed: {command}, Error: {e}")
-            return f"Error executing command: {str(e)}"
 
     def _add_to_history(self, action: str):
         """Add action to history, limiting to max_history entries."""
