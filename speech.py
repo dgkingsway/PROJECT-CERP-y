@@ -28,7 +28,7 @@ class SpeechProcessor:
         OSError: lambda: (logging.error("Microphone not found"), "Error: Microphone not found, check audio settings."),
         Exception: lambda e: (logging.error(f"Speech recognition failed: {e}"), f"Error: {str(e)}")
     }
- 
+
     def __init__(self):
         self.recognizer = sr.Recognizer()
         self.auto = Automation()
@@ -79,11 +79,8 @@ class SpeechProcessor:
         except Exception as e:
             logging.error(f"Command execution failed: {command}, Error: {e}")
             return f"Error executing command: {str(e)}"
-<<<<<<< HEAD
 
 if __name__ == "__main__":
     processor = SpeechProcessor()
     command = processor.listen()
     print(processor.process_command(command))
-=======
->>>>>>> c8be447d693c953a6b4e2485bbe5fc7374357228
